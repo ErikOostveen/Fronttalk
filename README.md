@@ -10,12 +10,12 @@ The FrontTalk module brings retro speech synthesis to Eurorack in just 3U/12HP. 
 
 ▪ Specs
 
-• 3U/12HP = approx. H129mm x W61mm<br/>
+• 3U/12HP = H129mm x W61mm<br/>
 • Depth approx. 30mm<br/>
 • +12V = 80mA, -12V = 0mA, +5V = 0mA<br/>
 • Mono Audio Out<br/>
 • Misc.:<br/>
-&nbsp;• 2 x Rotary Encoder - control (turn and press)<br/>
+&nbsp;• 2 x Rotary Encoder - turn/press<br/>
 &nbsp;• 3 x Toggle switch - control various modes<br/>
 &nbsp;• 3 x Dial - Filter & Volume
 
