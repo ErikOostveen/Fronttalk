@@ -2,7 +2,7 @@
 ![Fronttalk Module Front Panel](https://www.erikoostveen.co.uk/assets/img/Fronttalk/FrontTalkModule.jpg)
 ▪ Introduction
 
-The FrontTalk module brings retro speech synthesis to Eurorack in just 3U/12HP. Powered by a tweaked Talkie Library, it delivers gritty 8-bit robo-phrases, full MIDI control, CV pitch/gate, and 4 digital glitch effects. Compact and bold, it gives your rack a voice with serious attitude.
+The FrontTalk module brings retro speech synthesis to Eurorack in just 3U/12HP. Powered by a tweaked Talkie Library (source: https://github.com/ArminJo/Talkie), it delivers gritty 8-bit robo-phrases, full MIDI control, CV pitch/gate, and 4 digital glitch effects. Compact and bold, it gives your rack a voice with serious attitude.
 
 ▪ Demo
 
