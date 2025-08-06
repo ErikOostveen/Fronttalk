@@ -165,33 +165,64 @@ void updateSwitchModes() {
 }
 
 
+
+
+// Called by the MIDI library (does not know about CV)
 void handleNoteOn(byte channel, byte note, byte velocity) {
+    handleNoteOn(channel, note, velocity, 0, LOW); // Pass LOW as default for MIDI
+}
+
+void handleNoteOn(byte channel, byte note, byte velocity, int raw, int gateState) {
     updateSwitchModes();
     previewActive = false;
     digitalWrite(TRIGGER_OUT_PIN, HIGH);
+
     if (responseMode=="Triggered") {
         triggerActive  = true;
         triggerEndTime = millis() + 25;
     }
     const uint8_t** bank = vocabBanks[currentBankIndex];
     size_t bankSize = vocabBankSizes[currentBankIndex];
+
     if (playMode=="Select") {
-        int idx = note - 29;
-        if (idx<0 || idx>=(int)bankSize) return;
+        int idx;
+        if (gateState == HIGH) {
+            idx = map(raw, 0, 3400, 0, bankSize-1);
+        } else {
+            idx = note - 29;
+        }
+        if (idx < 0) idx = 0;
+        if (idx >= (int)bankSize) idx = bankSize-1;
+
         Voice.terminate();
         TalkiePitch = BASE_TALKIE_PITCH;
         speakPhoneme(bank[idx], TalkiePitch);
         latchedIndex  = idx;
         latchedBank   = bank;
         encoderBIndex = idx;
-    } else {
-        if (!latchedBank || latchedIndex<0) return;
-        float mult = pow(2.0, (note-60)/PITCH_SENSITIVITY);
-        TalkiePitch = (int)(BASE_TALKIE_PITCH * mult);
+    }
+    else if (playMode == "Hold") {
+        int mappedPitch;
+        if (gateState == HIGH) {
+            // Gate/CV triggers: use CV for pitch
+            mappedPitch = map(raw, 0, 3400, 2000, 16000);
+        } else {
+            // MIDI triggers: use note number for pitch
+            mappedPitch = map(note, 36, 84, 2000, 16000);
+            if (mappedPitch < 2000) mappedPitch = 2000;
+            if (mappedPitch > 16000) mappedPitch = 16000;
+        }
         Voice.terminate();
+        TalkiePitch = mappedPitch;
+        // *** ONLY play the currently latched phrase! ***
         speakPhoneme(latchedBank[latchedIndex], TalkiePitch);
+        digitalWrite(AUDIO_GATE_PIN, HIGH);
     }
 }
+
+
+
+
 
 void handleNoteOff(byte, byte note, byte) {
     updateSwitchModes();
@@ -262,11 +293,11 @@ void setup() {
 
   // only 0000 → Omni; 0001–1111 → channels 1–15
   if (ch_bits == 0) {
-    Serial.println("Using MIDI channel: OMNI");
+    //Serial.println("Using MIDI channel: OMNI");
     MIDI.begin(MIDI_CHANNEL_OMNI);
   } else {
-    Serial.print("Using MIDI channel: ");
-    Serial.println(ch_bits);
+    //Serial.print("Using MIDI channel: ");
+    //Serial.println(ch_bits);
     MIDI.begin(ch_bits);
   }
 
@@ -298,6 +329,23 @@ static int lastCVNote = 0;
 
 void loop() {
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     TurnToTalk = (digitalRead(TURN_TO_TALK_PIN) == HIGH);
 
     updateSwitchModes();
@@ -328,19 +376,28 @@ void loop() {
 
     int gateState = digitalRead(GATE_INPUT_PIN);
     if (gateState == HIGH && lastGateState == LOW) {
+        int raw = analogRead(PITCH_CV_PIN);
+        if (raw > 3400) raw = 3400;
 
-      // Rising edge: read A4, map 0–3.3 V (0–4095) → MIDI 48–72
-      int raw = analogRead(PITCH_CV_PIN);
-      // clamp just in case someone feeds you a little over 3.3 V
-      if (raw > 4095) raw = 4095;
-      int cvNote = map(raw, 0, 4095, 48, 72);
-      lastCVNote = cvNote;
-
-    handleNoteOn(1, cvNote, 127);
+        if (playMode == "Select") {
+            // Selects and plays phrase based on CV
+            int idx = map(raw, 0, 3400, 0, vocabBankSizes[currentBankIndex]-1);
+            latchedIndex = idx;
+            latchedBank = vocabBanks[currentBankIndex];
+            Voice.terminate();
+            TalkiePitch = BASE_TALKIE_PITCH;
+            speakPhoneme(latchedBank[latchedIndex], TalkiePitch);
+        } else if (playMode == "Hold") {
+            // Only pitch changes, phrase stays
+            int mappedPitch = map(raw, 0, 3400, 2000, 16000);
+            Voice.terminate();
+            TalkiePitch = mappedPitch;
+            speakPhoneme(latchedBank[latchedIndex], TalkiePitch);
+            digitalWrite(AUDIO_GATE_PIN, HIGH);
+        }
     }
+
     else if (gateState == LOW && lastGateState == HIGH) {
-      Serial.println("Low");
-        // falling edge: send matching “Note Off”
         handleNoteOff(1, lastCVNote, 0);
     }
     lastGateState = gateState;
@@ -473,7 +530,7 @@ void loop() {
             }
         }
 
-        Serial.print(encoderBIndex);
+        //Serial.print(encoderBIndex);
     }
 
 
